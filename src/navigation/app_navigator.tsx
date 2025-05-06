@@ -16,11 +16,9 @@ import ApiTestScreen from '../screens/ApiTestScreen';
 // Define ParamList for type safety (optional but good)
 export type RootTabParamList = {
   Home: undefined;
-  Quiz: undefined;
-  Post: undefined;
-  Profile: undefined;
   Search: undefined;
-  ApiTest: undefined;
+  CreateQuiz: undefined;
+  Profile: undefined;
 };
 
 // *** CREATE THE NAVIGATOR INSTANCE ***
@@ -37,14 +35,12 @@ const AppNavigator = () => {
 
           if (route.name === 'Home') {
             iconName = focused ? 'home' : 'home-outline';
-          } else if (route.name === 'Post') {
+          } else if (route.name === 'CreateQuiz') {
             iconName = focused ? 'add-circle' : 'add-circle-outline';
           } else if (route.name === 'Profile') {
             iconName = focused ? 'person' : 'person-outline';
           } else if (route.name === 'Search') {
             iconName = focused ? 'search' : 'search-outline';
-          } else if (route.name === 'ApiTest') {
-            iconName = focused ? 'server' : 'server-outline';
           }
           return <Text><Ionicons name={iconName} size={size} color={color} /></Text>;
         },
@@ -58,16 +54,14 @@ const AppNavigator = () => {
       {/* *** DEFINE SCREENS USING Tab.Screen *** */}
       <Tab.Screen name="Home" component={HomeScreen} />
       <Tab.Screen name="Search" component={SearchScreenNavigator} />
-      <Tab.Screen name="Post" component={CreatePostScreen} />
-      <Tab.Screen name="Profile" component={ProfileScreenNavigator} />
       <Tab.Screen 
-        name="ApiTest" 
-        component={ApiTestScreen} 
-        options={{ 
-          title: 'API Test',
-          tabBarLabel: 'API Test'
-        }} 
+        name="CreateQuiz" 
+        component={CreatePostScreen}
+        options={{
+          title: 'Create Quiz',
+        }}
       />
+      <Tab.Screen name="Profile" component={ProfileScreenNavigator} />
     </Tab.Navigator>
   );
 };

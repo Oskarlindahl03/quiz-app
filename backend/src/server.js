@@ -9,6 +9,7 @@ require('dotenv').config({ path: path.join(__dirname, '../env') });
 
 // Import routes
 const quizRoutes = require('./routes/quiz.routes');
+const userRoutes = require('./routes/user.routes');
 
 // Import middleware
 const { notFound, errorHandler } = require('./middleware/error.middleware');
@@ -41,6 +42,7 @@ app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
 // API Routes
 app.use('/api/quizzes', quizRoutes);
+app.use('/api/users', userRoutes);
 
 // Debug route - print all request info
 app.get('/api/debug', (req, res) => {

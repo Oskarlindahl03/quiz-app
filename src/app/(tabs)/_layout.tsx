@@ -1,11 +1,15 @@
 import React from 'react';
-import { Tabs } from 'expo-router';
+import { Tabs, usePathname } from 'expo-router';
 import { useAuth } from '../../context/AuthContext';
 import { View, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 export default function TabsLayout() {
   const { isAuthenticated, isLoading } = useAuth();
+  const pathname = usePathname();
+  
+  // Hide tab bar for settings screen
+  const shouldHideTabBar = pathname === '/(tabs)/settings';
 
   // Show loading state
   if (isLoading) {
@@ -26,6 +30,8 @@ export default function TabsLayout() {
       screenOptions={{
         headerShown: true,
         tabBarActiveTintColor: '#007AFF',
+        tabBarShowLabel: false,
+        tabBarStyle: shouldHideTabBar ? { display: 'none' } : undefined,
       }}
     >
       <Tabs.Screen
@@ -34,6 +40,24 @@ export default function TabsLayout() {
           title: 'Home',
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="home" size={size} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="create-quiz"
+        options={{
+          title: 'Create Quiz',
+          tabBarIcon: ({ focused, color, size }) => (
+            <Ionicons name={focused ? 'add-circle' : 'add-circle-outline'} size={size} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="search"
+        options={{
+          title: 'Search',
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="search" size={size} color={color} />
           ),
         }}
       />
@@ -50,9 +74,7 @@ export default function TabsLayout() {
         name="settings"
         options={{
           title: 'Settings',
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="settings" size={size} color={color} />
-          ),
+          href: null, // This hides it from the tab bar but keeps it in the navigation
         }}
       />
     </Tabs>

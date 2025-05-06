@@ -6,9 +6,7 @@ import {
 import { useRouter } from 'expo-router';
 import { getQuizById } from '../../services/quiz_service';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { apiBaseUrl } from '@/src/services/api.js';
-import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { HomeStackParamList } from '../../navigation/HomeScreenNavigator';
+import { apiBaseUrl } from '@/services/api';
 
 // --- Constants ---
 const { width } = Dimensions.get('window');
@@ -20,10 +18,13 @@ const optionWidth = (width - (optionMargin * (columns + 1)) * 2) / columns;
 // --- Type Definitions ---
 interface QuizQuestion {
     _id: string;
-    question: string;
-    options: string[];
-    correctAnswerIndex: number;
+    text: string;
+    options: {
+        text: string;
+        isCorrect: boolean;
+    }[];
     image?: string;
+    imageUrl?: string;
 }
 
 interface QuizData {
@@ -33,12 +34,13 @@ interface QuizData {
     timePerQuestion?: number;
 }
 
-// Use type from React Navigation
-type InQuizGameScreenProps = NativeStackScreenProps<HomeStackParamList, 'InQuizGame'>;
+// Define props interface for component
+interface InQuizGameScreenProps {
+    quizId: string;
+}
 
 // --- Component ---
-const InQuizGameScreen = ({ route }: InQuizGameScreenProps) => {
-    const { quizId } = route.params;
+const InQuizGameScreen = ({ quizId }: InQuizGameScreenProps) => {
     const router = useRouter();
 
     // --- State Variables with Types ---
@@ -75,6 +77,12 @@ const InQuizGameScreen = ({ route }: InQuizGameScreenProps) => {
                 if (!data?.questions?.length) { 
                     throw new Error("Invalid quiz data or no questions found."); 
                 }
+                // Debug each question's image properties
+                data.questions.forEach((q, i) => {
+                    console.log(`DEBUG - Question ${i+1} image:`, q.image || 'none');
+                    console.log(`DEBUG - Question ${i+1} imageUrl:`, q.imageUrl || 'none');
+                });
+                
                 if(data.questions[0]) {
                     console.log(`[FRONTEND InGame] Image path for Q1 from fetched data: ${data.questions[0].image}`);
                 }
@@ -124,33 +132,43 @@ const InQuizGameScreen = ({ route }: InQuizGameScreenProps) => {
     // Add debug logging for current question
     useEffect(() => {
         if (currentQuestion) {
-            console.log(`[DEBUG] Current question: ${currentQuestion.question}`);
-            console.log(`[DEBUG] Correct answer index: ${currentQuestion.correctAnswerIndex}`);
-            console.log(`[DEBUG] Options: ${JSON.stringify(currentQuestion.options)}`);
-            
-            if (currentQuestion.correctAnswerIndex === undefined || currentQuestion.correctAnswerIndex === null) {
-                console.warn(`[WARNING] correctAnswerIndex is ${currentQuestion.correctAnswerIndex} for question: ${currentQuestion.question}`);
-                console.warn(`[WARNING] Setting default correctAnswerIndex to 0 for this question`);
-                
-                if (quizData && quizData.questions) {
-                    const updatedQuestions = [...quizData.questions];
-                    updatedQuestions[currentQuestionIndex] = {
-                        ...currentQuestion,
-                        correctAnswerIndex: 0
-                    };
-                    setQuizData({
-                        ...quizData,
-                        questions: updatedQuestions
-                    });
-                }
-            }
+            console.log(`[DEBUG] Current question: ${currentQuestion.text}`);
+            console.log(`[DEBUG] Options:`, JSON.stringify(currentQuestion.options));
+            const correctIndex = currentQuestion.options.findIndex(opt => opt.isCorrect);
+            console.log(`[DEBUG] Correct answer index: ${correctIndex}`);
         }
-    }, [currentQuestion, currentQuestionIndex, quizData]);
+    }, [currentQuestion]);
+
+    // Fix questions with no correct answer right after fetching data, not on every render
+    useEffect(() => {
+        if (!quizData) return;
+        
+        let needsUpdate = false;
+        const updatedQuestions = [...quizData.questions];
+        
+        // Check all questions for missing correct answers
+        updatedQuestions.forEach((question, index) => {
+            const hasCorrectAnswer = question.options.some(opt => opt.isCorrect);
+            if (!hasCorrectAnswer && question.options.length > 0) {
+                console.warn(`[WARNING] No correct answer found for question ${index + 1}, adding default`);
+                question.options[0].isCorrect = true;
+                needsUpdate = true;
+            }
+        });
+        
+        // Only update if needed
+        if (needsUpdate) {
+            setQuizData({
+                ...quizData,
+                questions: updatedQuestions
+            });
+        }
+    }, [quizData?.questions?.length]); // Only run when questions array length changes (once after fetch)
 
     useEffect(() => {
-        console.log('apiBaseUrl:', apiBaseUrl);
+        console.log('DEBUG - apiBaseUrl:', apiBaseUrl);
         if (currentQuestion?.image) {
-            console.log('Full image URL:', `${apiBaseUrl}${currentQuestion.image}`);
+            console.log('DEBUG - Question image path:', currentQuestion.image);
         }
     }, [currentQuestion]);
 
@@ -195,12 +213,13 @@ const InQuizGameScreen = ({ route }: InQuizGameScreenProps) => {
     
         setSelectedAnswerIndex(index);
         setLastSelectedAnswer(index);
-        setLastQuestionText(currentQuestion.question);
-        setLastQuestionOptions(currentQuestion.options);
+        setLastQuestionText(currentQuestion.text);
+        const optionTexts = currentQuestion.options.map(opt => opt.text);
+        setLastQuestionOptions(optionTexts);
         
-        const correctAnswerIndex = currentQuestion.correctAnswerIndex;
-        if (correctAnswerIndex === undefined || correctAnswerIndex === null) {
-            console.error(`[ERROR] correctAnswerIndex is ${correctAnswerIndex} for question: ${currentQuestion.question}`);
+        const correctAnswerIndex = currentQuestion.options.findIndex(opt => opt.isCorrect);
+        if (correctAnswerIndex === -1) {
+            console.error(`[ERROR] No correct answer found for question: ${currentQuestion.text}`);
             setIsAnswerCorrect(false);
             setLastCorrectAnswer(0);
             setQuestionResults(prev => {
@@ -269,7 +288,7 @@ const InQuizGameScreen = ({ route }: InQuizGameScreenProps) => {
     // --- Dynamic Styling Function ---
     const getOptionStyle = (index: number) => {
         const isSelected = selectedAnswerIndex === index;
-        const isCorrect = currentQuestion.correctAnswerIndex === index;
+        const isCorrect = currentQuestion.options[index]?.isCorrect === true;
         const answered = selectedAnswerIndex !== null;
         let buttonStyle: any[] = [styles.optionButton, { width: optionWidth }];
 
@@ -360,24 +379,66 @@ const InQuizGameScreen = ({ route }: InQuizGameScreenProps) => {
                     <Text style={styles.statsText}>{currentQuestionIndex + 1}/{totalQuestions} questions</Text>
                 </View>
                 <View style={styles.imagePlaceholder}>
-                    {currentQuestion?.image ? (() => {
-                        const imageUrl = `${apiBaseUrl}${currentQuestion.image}`;
-                        console.log(`[FRONTEND InGame] Setting Image source.uri to: ${imageUrl}`);
+                    {(currentQuestion?.image || currentQuestion?.imageUrl) ? (() => {
+                        // Determine which image field to use (image or imageUrl)
+                        const imagePath = currentQuestion.imageUrl || currentQuestion.image;
+                        console.log('DEBUG - Using image field:', currentQuestion.imageUrl ? 'imageUrl' : 'image');
+                        console.log('DEBUG - Image path value:', imagePath);
+                        
+                        // Get proper image URL based on the format
+                        const getProperImageUrl = (imagePath) => {
+                            if (!imagePath) return null;
+
+                            console.log('DEBUG - Raw image path:', imagePath);
+                            
+                            // If it's already a complete URL, use it
+                            if (imagePath.startsWith('http')) {
+                                return imagePath;
+                            }
+                            
+                            // If it's a filename or path pointing to uploads folder
+                            const serverUrl = apiBaseUrl.replace(/\/api$/, '');
+                            
+                            // Handle case where it starts with /uploads/
+                            if (imagePath.startsWith('/uploads/')) {
+                                return `${serverUrl}${imagePath}`;
+                            }
+                            
+                            // Handle case with just the filename
+                            if (!imagePath.includes('/')) {
+                                return `${serverUrl}/uploads/${imagePath}`;
+                            }
+                            
+                            // Handle some other path format - extract the filename
+                            const filename = imagePath.split(/[\/\\]/).pop();
+                            return `${serverUrl}/uploads/${filename}`;
+                        };
+                        
+                        const imageUrl = getProperImageUrl(imagePath);
+                        console.log(`DEBUG - Final image URL: ${imageUrl}`);
                         return (
                             <Image 
-                                source={{ uri: `${apiBaseUrl.replace(/\/api$/, '')}${currentQuestion.image}` }} 
+                                source={{ uri: imageUrl }} 
                                 style={styles.image}
                                 resizeMode='cover'
-                                onError={(e) => console.error('Image failed to load:', e.nativeEvent.error)}
+                                onError={(e) => {
+                                    console.error('Image failed to load:', e.nativeEvent.error);
+                                    console.error('Attempted URL was:', imageUrl);
+                                    // Try alternative URLs if the first attempt fails
+                                    console.error('Server URL is:', apiBaseUrl.replace(/\/api$/, ''));
+                                    console.error('Image filename:', imagePath?.split(/[\/\\]/).pop() || 'unknown');
+                                }}
                             />
                         );
                     })() : (
-                        <Text style={styles.imagePlaceholderText}>Picture</Text>
+                        <View style={[styles.image, {alignItems: 'center', justifyContent: 'center', backgroundColor: '#f0f0f0'}]}>
+                            <Text style={styles.imagePlaceholderText}>No image available</Text>
+                        </View>
                     )}
                 </View>
 
                 <View style={styles.questionContainer}>
-                    <Text style={styles.questionText}>{currentQuestion.question}</Text>
+                    <Text style={styles.questionText}>{currentQuestion.text}</Text>
                 </View>
                 <View style={styles.optionsContainer}>
                     {currentQuestion.options.map((option, index) => (
@@ -386,7 +447,7 @@ const InQuizGameScreen = ({ route }: InQuizGameScreenProps) => {
                             style={getOptionStyle(index)}
                             onPress={() => handleAnswerSelect(index)}
                             disabled={selectedAnswerIndex !== null}>
-                            <Text style={styles.optionText}>{option.replace(/^[A-D]\.\s*/,'')}</Text>
+                            <Text style={styles.optionText}>{option.text}</Text>
                         </TouchableOpacity>
                     ))}
                 </View>

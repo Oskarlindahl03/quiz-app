@@ -12,6 +12,7 @@ import {
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useRouter } from 'expo-router';
 import { getAllQuizzes } from '../../services/quiz_service';
+import { useAuth } from '@/context/AuthContext';
 
 type Quiz = {
   _id: string;
@@ -27,6 +28,7 @@ type Quiz = {
  */
 const SearchScreen: React.FC = () => {
   const router = useRouter();
+  const { user } = useAuth();
   // State for search query and results
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [isSearching, setIsSearching] = useState<boolean>(false);
@@ -79,19 +81,29 @@ const SearchScreen: React.FC = () => {
     router.push(`/quiz/${quizId}` as any);
   };
 
-  // Render a search result item
-  const renderSearchResult = ({ item }: { item: Quiz }) => (
-    <TouchableOpacity 
-      style={styles.resultItem}
-      onPress={() => navigateToQuiz(item._id)}
+  const renderQuizItem = ({ item, index }: { item: Quiz; index: number }) => (
+    <TouchableOpacity
+      style={[
+        styles.quizItem,
+        { backgroundColor: index % 2 === 0 ? '#E3D4ED' : '#D8F3DC' }
+      ]}
+      activeOpacity={0.8}
+      onPress={() => router.push(`/quiz/${item._id}`)}
     >
-      <View style={styles.resultContent}>
-        <Text style={styles.resultTitle}>{item.title}</Text>
-        {item.description && (
-          <Text style={styles.resultDescription}>{item.description}</Text>
-        )}
+      <View style={styles.cardHeader}>
+        <View style={styles.avatarPlaceholder} />
+        <View style={styles.headerTextContainer}>
+          <Text style={styles.username}>@{user?.username || 'user'}</Text>
+        </View>
       </View>
-      <Ionicons name="chevron-forward" size={24} color="#999" />
+      <View style={styles.cardFooter}>
+        <Text style={styles.footerTitle} numberOfLines={1}>{item.title}</Text>
+        <View style={styles.footerIcons}>
+          <Ionicons name="chatbubble-outline" size={20} color="#555" />
+          <Ionicons name="heart-outline" size={20} color="#555" style={styles.footerIcon} />
+          <Ionicons name="share-social-outline" size={20} color="#555" style={styles.footerIcon} />
+        </View>
+      </View>
     </TouchableOpacity>
   );
 
@@ -131,7 +143,7 @@ const SearchScreen: React.FC = () => {
         ) : searchResults.length > 0 ? (
           <FlatList
             data={searchResults}
-            renderItem={renderSearchResult}
+            renderItem={renderQuizItem}
             keyExtractor={item => item._id}
             contentContainerStyle={styles.resultsList}
             showsVerticalScrollIndicator={false}
@@ -157,7 +169,7 @@ const SearchScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFDE7', // Consistent with app theme
+    backgroundColor: '#F2F2F7',
   },
   header: {
     flexDirection: 'row',
@@ -172,7 +184,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#F15BB5', // Consistent with app theme
+    color: '#F15BB5',
   },
   searchContainer: {
     padding: 16,
@@ -216,30 +228,59 @@ const styles = StyleSheet.create({
   resultsList: {
     paddingBottom: 20,
   },
-  resultItem: {
+  quizItem: {
+    backgroundColor: '#FFFFFF',
+    padding: 16,
+    marginBottom: 16,
+    borderRadius: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+    height: 200,
+    justifyContent: 'space-between',
+  },
+  cardHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'white',
-    borderRadius: 10,
-    padding: 16,
     marginBottom: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
   },
-  resultContent: {
+  avatarPlaceholder: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#ccc',
+    marginRight: 12,
+  },
+  headerTextContainer: {
     flex: 1,
+    marginLeft: 12,
   },
-  resultTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginBottom: 4,
-  },
-  resultDescription: {
+  username: {
     fontSize: 14,
     color: '#666',
+    marginBottom: 2,
+  },
+  cardFooter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: 'auto',
+  },
+  footerTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#333',
+    flex: 1,
+    marginRight: 16,
+  },
+  footerIcons: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  footerIcon: {
+    marginLeft: 16,
   },
   noResultsContainer: {
     flex: 1,
