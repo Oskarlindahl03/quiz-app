@@ -11,6 +11,8 @@ import {
 } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useAuth } from '@/context/AuthContext';
+import { useTheme } from '@/context/ThemeContext';
+import { useProfile } from '@/context/ProfileContext';
 import { useRouter } from 'expo-router';
 import SearchScreen from '../../screens/search_screen/SearchScreen';
 
@@ -31,6 +33,8 @@ type UserData = {
 
 const ProfileScreen: React.FC = () => {
   const { user } = useAuth();
+  const { theme } = useTheme();
+  const { userTags } = useProfile();
   const router = useRouter();
   const [userData, setUserData] = useState<UserData>({
     quizzesTaken: 0,
@@ -56,8 +60,11 @@ const ProfileScreen: React.FC = () => {
   const avatarOverlap = Math.round(avatarSize / 2.2);
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 24 }}>
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.background }]}>
+      <ScrollView 
+        style={[styles.container, { backgroundColor: theme.background }]} 
+        contentContainerStyle={{ paddingBottom: 24 }}
+      >
         {/* Cover/Background Image with avatar and settings overlay */}
         <View style={[styles.coverWrapper, { height: coverHeight }]}> 
           <Image
@@ -74,7 +81,12 @@ const ProfileScreen: React.FC = () => {
             top: -avatarOverlap,
             zIndex: 2,
           }}>
-            <View style={[styles.avatarShadow, { width: avatarSize, height: avatarSize, borderRadius: avatarSize / 2 }]}> 
+            <View style={[styles.avatarShadow, { 
+              width: avatarSize, 
+              height: avatarSize, 
+              borderRadius: avatarSize / 2,
+              backgroundColor: theme.card 
+            }]}> 
               <Image
                 source={{ uri: 'https://via.placeholder.com/100.png?text=Avatar' }}
                 style={{ width: avatarSize, height: avatarSize, borderRadius: avatarSize / 2 }}
@@ -84,44 +96,76 @@ const ProfileScreen: React.FC = () => {
         </View>
         {/* Settings Icon below cover */}
         <View style={styles.settingsRow}>
-          <TouchableOpacity style={styles.settingsIcon} onPress={() => router.push('/(tabs)/settings')}>
-            <Ionicons name="settings-outline" size={24} color="#333" />
+          <TouchableOpacity 
+            style={[styles.settingsIcon, { backgroundColor: theme.card }]} 
+            onPress={() => router.push('/settings')}
+          >
+            <Ionicons name="settings-outline" size={24} color={theme.text} />
           </TouchableOpacity>
         </View>
         {/* User Info */}
         <View style={styles.infoSection}>
-          <Text style={styles.handle}>@{user?.username || 'user'}</Text>
+          <Text style={[styles.handle, { color: theme.text }]}>@{user?.username || 'user'}</Text>
           <View style={styles.tagRow}>
-            {['#art', '#music', '#design'].map(tag => (
-              <View key={tag} style={styles.tagChip}>
-                <Text style={styles.tagText}>{tag}</Text>
-              </View>
-            ))}
+            {userTags.length > 0 ? (
+              userTags.map(tag => (
+                <View key={tag} style={[styles.tagChip, { backgroundColor: theme.surface }]}>
+                  <Text style={[styles.tagText, { color: theme.secondaryText }]}>#{tag}</Text>
+                </View>
+              ))
+            ) : (
+              <Text style={[styles.noTagsText, { color: theme.secondaryText }]}>
+                No tags yet. Click Edit to add interests.
+              </Text>
+            )}
           </View>
+
+          {/* Profile Action Buttons */}
+          <View style={styles.actionButtonsRow}>
+            <TouchableOpacity
+              style={[styles.actionButton, { backgroundColor: theme.primary }]}
+              onPress={() => router.push('/edit-profile')}
+            >
+              <Ionicons name="create-outline" size={18} color="#FFFFFF" style={styles.actionButtonIcon} />
+              <Text style={styles.actionButtonText}>Edit</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity
+              style={[styles.actionButton, { backgroundColor: theme.surface, borderWidth: 1, borderColor: theme.border }]}
+              onPress={() => {
+                // Implement sharing profile functionality here
+                alert('Share profile feature coming soon');
+              }}
+            >
+              <Ionicons name="share-social-outline" size={18} color={theme.text} style={styles.actionButtonIcon} />
+              <Text style={[styles.actionButtonText, { color: theme.text }]}>Share Profile</Text>
+            </TouchableOpacity>
+          </View>
+
           {/* Stats */}
           <View style={styles.statsRow}>
             <View style={styles.statBlock}>
-              <Text style={styles.statNumber}>200</Text>
-              <Text style={styles.statLabel}>creations</Text>
+              <Text style={[styles.statNumber, { color: theme.text }]}>200</Text>
+              <Text style={[styles.statLabel, { color: theme.secondaryText }]}>creations</Text>
             </View>
             <View style={styles.statBlock}>
-              <Text style={styles.statNumber}>25k</Text>
-              <Text style={styles.statLabel}>fans</Text>
+              <Text style={[styles.statNumber, { color: theme.text }]}>25k</Text>
+              <Text style={[styles.statLabel, { color: theme.secondaryText }]}>fans</Text>
             </View>
             <View style={styles.statBlock}>
-              <Text style={styles.statNumber}>500</Text>
-              <Text style={styles.statLabel}>connections</Text>
+              <Text style={[styles.statNumber, { color: theme.text }]}>500</Text>
+              <Text style={[styles.statLabel, { color: theme.secondaryText }]}>connections</Text>
             </View>
           </View>
           {/* Collections Section: Quizzes */}
-          <View style={styles.collectionCard}>
+          <View style={[styles.collectionCard, { backgroundColor: theme.card }]}>
             <View style={styles.collectionHeader}>
-              <Text style={styles.collectionTitle}>Quizzes</Text>
-              <Ionicons name="chevron-forward" size={20} color="#333" />
+              <Text style={[styles.collectionTitle, { color: theme.text }]}>Quizzes</Text>
+              <Ionicons name="chevron-forward" size={20} color={theme.text} />
             </View>
             <View style={styles.collectionGrid}>
               {[1,2,3,4].map((i, idx) => (
-                <View key={idx} style={styles.collectionImageWrap}>
+                <View key={idx} style={[styles.collectionImageWrap, { backgroundColor: theme.surface }]}>
                   <Image
                     source={{ uri: `https://via.placeholder.com/100?text=${idx+1}` }}
                     style={styles.collectionImage}
@@ -136,14 +180,14 @@ const ProfileScreen: React.FC = () => {
             </View>
           </View>
           {/* Collections Section: Tutorials */}
-          <View style={styles.collectionCard}>
+          <View style={[styles.collectionCard, { backgroundColor: theme.card }]}>
             <View style={styles.collectionHeader}>
-              <Text style={styles.collectionTitle}>Tutorials</Text>
-              <Ionicons name="chevron-forward" size={20} color="#333" />
+              <Text style={[styles.collectionTitle, { color: theme.text }]}>Tutorials</Text>
+              <Ionicons name="chevron-forward" size={20} color={theme.text} />
             </View>
             <View style={styles.collectionGrid}>
               {[1,2,3,4].map((i, idx) => (
-                <View key={idx} style={styles.collectionImageWrap}>
+                <View key={idx} style={[styles.collectionImageWrap, { backgroundColor: theme.surface }]}>
                   <Image
                     source={{ uri: `https://via.placeholder.com/100?text=${idx+1}` }}
                     style={styles.collectionImage}
@@ -193,7 +237,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.18,
     shadowRadius: 6,
     elevation: 4,
-    backgroundColor: '#fff',
     padding: 2,
   },
   settingsRow: {
@@ -205,7 +248,6 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   settingsIcon: {
-    backgroundColor: '#fff',
     borderRadius: 20,
     padding: 8,
     shadowColor: '#000',
@@ -233,13 +275,11 @@ const styles = StyleSheet.create({
   },
   tagChip: {
     padding: 8,
-    backgroundColor: '#F0F0F0',
     borderRadius: 16,
     marginRight: 8,
   },
   tagText: {
     fontSize: 14,
-    color: '#666',
   },
   statsRow: {
     flexDirection: 'row',
@@ -256,10 +296,8 @@ const styles = StyleSheet.create({
   },
   statLabel: {
     fontSize: 14,
-    color: '#666',
   },
   collectionCard: {
-    backgroundColor: '#fff',
     borderRadius: 12,
     marginBottom: 18,
     padding: 12,
@@ -279,7 +317,6 @@ const styles = StyleSheet.create({
   collectionTitle: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: '#222',
   },
   collectionGrid: {
     flexDirection: 'row',
@@ -293,7 +330,6 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     overflow: 'hidden',
     position: 'relative',
-    backgroundColor: '#e5e5e5',
   },
   collectionImage: {
     width: '100%',
@@ -310,6 +346,38 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontWeight: 'bold',
     fontSize: 18,
+  },
+  actionButtonsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+    gap: 12,
+  },
+  actionButton: {
+    flex: 1,
+    padding: 12,
+    borderRadius: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  actionButtonIcon: {
+    marginRight: 8,
+  },
+  actionButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  noTagsText: {
+    fontSize: 14,
+    fontStyle: 'italic',
   },
 });
 

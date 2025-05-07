@@ -17,6 +17,7 @@ export type Quiz = {
   _id: string;
   title: string;
   description?: string;
+  createdBy?: string;
 };
 
 interface QuizListProps {
@@ -56,23 +57,18 @@ export const QuizList: React.FC<QuizListProps> = ({
         { backgroundColor: getCardBackgroundColor(index) }
       ]}
       activeOpacity={0.8}
-      onPress={() => router.push(`/quiz/${item._id}`)}
+      onPress={() => router.push(`/quiz/preview/${item._id}`)}
       onLongPress={() => onDeleteQuiz && onDeleteQuiz(item._id)}
       delayLongPress={500}
     >
       <View style={styles.cardHeader}>
         <View style={[styles.avatarPlaceholder, { backgroundColor: isDarkMode ? '#555' : '#ccc' }]} />
         <View style={styles.headerTextContainer}>
-          <Text style={[styles.username, { color: theme.secondaryText }]}>@{user?.username || 'user'}</Text>
+          <Text style={[styles.username, { color: theme.secondaryText }]}>@{item.createdBy || 'Anonymous'}</Text>
         </View>
       </View>
       <View style={styles.cardFooter}>
         <Text style={[styles.footerTitle, { color: theme.text }]} numberOfLines={1}>{item.title}</Text>
-        <View style={styles.footerIcons}>
-          <Ionicons name="chatbubble-outline" size={20} color={theme.secondaryText} />
-          <Ionicons name="heart-outline" size={20} color={theme.secondaryText} style={styles.footerIcon} />
-          <Ionicons name="share-social-outline" size={20} color={theme.secondaryText} style={styles.footerIcon} />
-        </View>
       </View>
       {deletingQuizId === item._id && (
         <View style={styles.deletingOverlay}>
@@ -168,14 +164,12 @@ const styles = StyleSheet.create({
   cardFooter: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
     marginTop: 'auto',
   },
   footerTitle: {
     fontSize: 16,
     fontWeight: '600',
     flex: 1,
-    marginRight: 16,
   },
   footerIcons: {
     flexDirection: 'row',

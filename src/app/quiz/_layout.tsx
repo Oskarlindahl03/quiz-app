@@ -10,6 +10,7 @@ export default function QuizLayout() {
       }}
     >
       <Stack.Screen name="[quizId]" />
+      <Stack.Screen name="preview/[quizId]" />
     </Stack>
   );
 } 

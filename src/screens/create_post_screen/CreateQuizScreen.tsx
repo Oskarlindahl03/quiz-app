@@ -16,7 +16,8 @@ import {
     Platform,
     KeyboardAvoidingView,
     TouchableWithoutFeedback,
-    Keyboard
+    Keyboard,
+    StatusBar
 } from 'react-native';
 import { createQuiz, uploadQuestionImage } from '../../services/quiz_service'; 
 import { useRouter } from 'expo-router';
@@ -24,6 +25,7 @@ import * as ImagePicker from 'expo-image-picker';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { apiBaseUrl } from '../../services/api';
 import { useTheme } from '@/context/ThemeContext';
+import { useAuth } from '@/context/AuthContext';
 
 // Use the API URL from the api module instead of hardcoding it
 const API_BASE_URL = apiBaseUrl;
@@ -113,8 +115,6 @@ interface ImageUploadResponse {
     success: boolean;
     imageUrl: string;
 }
-
-const PLACEHOLDER_USER_ID = '65dd20b9f358f48b97cf575a'; 
 
 let questionIdCounter = 0;
 
@@ -219,6 +219,7 @@ const SafeImage: React.FC<SafeImageProps> = ({ uri, style, fallback = null }) =>
 const CreateQuizScreenMVP = () => {
     const router = useRouter();
     const { theme } = useTheme();
+    const { user } = useAuth();
     const [title, setTitle] = useState<string>('');
     const [tags, setTags] = useState<string[]>([]);
     const [tagModalVisible, setTagModalVisible] = useState<boolean>(false);
@@ -226,6 +227,11 @@ const CreateQuizScreenMVP = () => {
     const [questions, setQuestions] = useState<QuestionDraft[]>([createNewQuestion()]);
     const [isLoading, setIsLoading] = useState<boolean>(false); // For create quiz API call
     const [isUploading, setIsUploading] = useState<string | null>(null); // ID of question whose image is uploading
+
+    // Handle navigation back to quiz options
+    const handleGoBack = () => {
+        router.push('/create-quiz-options');
+    };
 
     useEffect(() => {
         (async () => {
@@ -386,7 +392,12 @@ const CreateQuizScreenMVP = () => {
                 })),
             })
         );
-        const quizData = { title, tags, questions: questionsPayload, createdBy: PLACEHOLDER_USER_ID};
+        const quizData = { 
+            title, 
+            tags, 
+            questions: questionsPayload, 
+            createdBy: user?.username || 'Anonymous'
+        };
 
         // API Call
         setIsLoading(true);
@@ -413,7 +424,21 @@ const CreateQuizScreenMVP = () => {
 
     // --- UI ---
     return (
-        <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.background }]}>
+        <View style={[styles.safeArea, { backgroundColor: theme.background }]}>
+            <StatusBar barStyle="dark-content" />
+            
+            {/* Header with back button */}
+            <View style={[styles.header, { borderBottomColor: theme.border }]}>
+                <TouchableOpacity 
+                    onPress={handleGoBack} 
+                    style={styles.backButton}
+                >
+                    <Ionicons name="chevron-back" size={24} color={theme.text} />
+                </TouchableOpacity>
+                <Text style={[styles.headerTitle, { color: theme.text }]}>Create Quiz</Text>
+                <View style={styles.headerPlaceholder} />
+            </View>
+            
             <ScrollView style={[styles.container, { backgroundColor: theme.background }]} keyboardShouldPersistTaps="handled">
                 {/* Form */}
                 <Text style={[styles.label, { color: theme.text }]}>Quiz Title</Text>
@@ -750,7 +775,7 @@ const CreateQuizScreenMVP = () => {
                      </TouchableOpacity>
                  </SafeAreaView>
              </Modal>
-          </SafeAreaView>
+          </View>
     );
 };
 
@@ -759,6 +784,25 @@ const styles = StyleSheet.create({
     safeArea: { 
         flex: 1, 
         backgroundColor: '#F2F2F7' // iOS background gray
+    },
+    header: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        paddingHorizontal: 16,
+        paddingVertical: 12,
+        borderBottomWidth: 1,
+        paddingTop: 50, // Add padding for status bar
+    },
+    backButton: {
+        padding: 8,
+    },
+    headerTitle: {
+        fontSize: 18,
+        fontWeight: '600',
+    },
+    headerPlaceholder: {
+        width: 40,
     },
     container: { 
         flex: 1, 

@@ -1,5 +1,7 @@
 import { Stack } from 'expo-router';
 import { AuthProvider } from '../context/AuthContext';
+import { ThemeProvider } from '../context/ThemeContext';
+import { ProfileProvider } from '../context/ProfileContext';
 import { useEffect } from 'react';
 
 export default function RootLayout() {
@@ -10,20 +12,24 @@ export default function RootLayout() {
 
   return (
     <AuthProvider>
-      <Stack screenOptions={{ headerShown: false }}>
-        <Stack.Screen 
-          name="index" 
-          options={{ headerShown: false }} 
-        />
-        <Stack.Screen 
-          name="(auth)" 
-          options={{ headerShown: false }} 
-        />
-        <Stack.Screen 
-          name="(tabs)" 
-          options={{ headerShown: false }} 
-        />
-      </Stack>
+      <ThemeProvider>
+        <ProfileProvider>
+          <Stack screenOptions={{ headerShown: false }}>
+            <Stack.Screen 
+              name="index" 
+              options={{ headerShown: false }} 
+            />
+            <Stack.Screen 
+              name="(auth)" 
+              options={{ headerShown: false }} 
+            />
+            <Stack.Screen 
+              name="(tabs)" 
+              options={{ headerShown: false }} 
+            />
+          </Stack>
+        </ProfileProvider>
+      </ThemeProvider>
     </AuthProvider>
   );
 } 

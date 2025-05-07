@@ -4,7 +4,7 @@ import {
   Text,
   StyleSheet,
   SafeAreaView,
-  ActivityIndicator,
+  ActivityIndicator, 
   Alert,
 } from 'react-native';
 import { useRouter, useFocusEffect } from 'expo-router';

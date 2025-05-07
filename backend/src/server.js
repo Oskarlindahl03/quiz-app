@@ -5,11 +5,15 @@ const helmet = require('helmet');
 const path = require('path');
 const fs = require('fs');
 const mongoose = require('mongoose');
+
+// Load environment variables from .env file first, then from env file as fallback
+require('dotenv').config({ path: path.join(__dirname, '../.env') });
 require('dotenv').config({ path: path.join(__dirname, '../env') });
 
 // Import routes
 const quizRoutes = require('./routes/quiz.routes');
 const userRoutes = require('./routes/user.routes');
+const aiRoutes = require('../routes/ai');
 
 // Import middleware
 const { notFound, errorHandler } = require('./middleware/error.middleware');
@@ -43,6 +47,7 @@ app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 // API Routes
 app.use('/api/quizzes', quizRoutes);
 app.use('/api/users', userRoutes);
+app.use('/api/ai', aiRoutes);
 
 // Debug route - print all request info
 app.get('/api/debug', (req, res) => {
@@ -69,6 +74,8 @@ app.get('/', (req, res) => {
     version: '1.0.0',
     endpoints: [
       '/api/quizzes',
+      '/api/users',
+      '/api/ai',
       '/api/debug',
       '/health'
     ]

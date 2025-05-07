@@ -4,11 +4,16 @@ import InQuizGameScreen from '../../screens/quiz_screen/InQuizGameScreen';
 import { View, StyleSheet } from 'react-native';
 
 export default function QuizPage() {
-  const { quizId } = useLocalSearchParams<{ quizId: string }>();
+  // Get both quizId and key from URL params
+  const { quizId, key } = useLocalSearchParams<{ quizId: string, key: string }>();
   
+  // Add a unique key to force the component to remount
   return (
     <View style={styles.container}>
-      <InQuizGameScreen quizId={quizId as string} />
+      <InQuizGameScreen 
+        key={key || quizId} 
+        quizId={quizId as string} 
+      />
     </View>
   );
 }

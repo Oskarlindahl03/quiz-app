@@ -3,10 +3,11 @@ import {
     View, Text, StyleSheet, ActivityIndicator, Button, Alert,
     TouchableOpacity, Image, SafeAreaView, Dimensions
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { getQuizById } from '../../services/quiz_service';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { apiBaseUrl } from '@/services/api';
+import { useTheme } from '../../context/ThemeContext';
 
 // --- Constants ---
 const { width } = Dimensions.get('window');
@@ -42,6 +43,8 @@ interface InQuizGameScreenProps {
 // --- Component ---
 const InQuizGameScreen = ({ quizId }: InQuizGameScreenProps) => {
     const router = useRouter();
+    const { key } = useLocalSearchParams();
+    const { theme } = useTheme();
 
     // --- State Variables with Types ---
     const [loading, setLoading] = useState<boolean>(true);
@@ -60,6 +63,24 @@ const InQuizGameScreen = ({ quizId }: InQuizGameScreenProps) => {
     const [lastQuestionText, setLastQuestionText] = useState<string>('');
     const [lastQuestionOptions, setLastQuestionOptions] = useState<string[]>([]);
     const [countdownTimer, setCountdownTimer] = useState<number>(3);
+
+    // Reset all quiz state when quizId or key changes
+    useEffect(() => {
+        setCurrentQuestionIndex(0);
+        setScore(0);
+        setSelectedAnswerIndex(null);
+        setIsAnswerCorrect(null);
+        setTimeLeft(15);
+        setQuestionResults([]);
+        setQuizCompleted(false);
+        setShowAnswerConfirmation(false);
+        setLastSelectedAnswer(null);
+        setLastCorrectAnswer(null);
+        setLastQuestionText('');
+        setLastQuestionOptions([]);
+        setCountdownTimer(3);
+        // Optionally, re-fetch quiz data if needed (fetchQuiz is already called in another effect)
+    }, [quizId, key]);
 
     // --- Data Fetching ---
     useEffect(() => {
@@ -186,8 +207,15 @@ const InQuizGameScreen = ({ quizId }: InQuizGameScreenProps) => {
             const finalScore = questionResults.filter(result => result === true).length;
             console.log(`[DEBUG] Quiz finished. Final score: ${finalScore}/${totalQuestions}`);
             console.log(`[DEBUG] Question results: ${JSON.stringify(questionResults)}`);
-            Alert.alert("Quiz Finished", `Your score: ${finalScore}/${totalQuestions}`);
-            router.back();
+            router.push({
+              pathname: '/score',
+              params: {
+                score: finalScore,
+                total: totalQuestions,
+                quizTitle: quizData?.title || '',
+                quizId: quizData?._id || '',
+              },
+            });
         }
     }, [currentQuestionIndex, quizData, totalQuestions, questionResults, router]);
 
@@ -260,27 +288,27 @@ const InQuizGameScreen = ({ quizId }: InQuizGameScreenProps) => {
 
     if (loading) { 
         return (
-            <View style={styles.centered}>
-                <ActivityIndicator size="large" />
-                <Text>Loading Quiz...</Text>
+            <View style={[styles.centered, { backgroundColor: theme.background }]}>
+                <ActivityIndicator size="large" color={theme.primary} />
+                <Text style={{ color: theme.text }}>Loading Quiz...</Text>
             </View>
         ); 
     }
     
     if (error) { 
         return (
-            <View style={styles.centered}>
-                <Text style={styles.errorText}>{error}</Text>
-                <Button title="Go Back" onPress={() => router.back()} />
+            <View style={[styles.centered, { backgroundColor: theme.background }]}>
+                <Text style={[styles.errorText, { color: theme.error }]}>{error}</Text>
+                <Button title="Go Back" onPress={() => router.back()} color={theme.primary} />
             </View>
         ); 
     }
     
     if (!quizData || !currentQuestion) { 
         return (
-            <View style={styles.centered}>
-                <Text style={styles.errorText}>Quiz data unavailable or error finding question.</Text>
-                <Button title="Go Back" onPress={() => router.back()} />
+            <View style={[styles.centered, { backgroundColor: theme.background }]}>
+                <Text style={[styles.errorText, { color: theme.error }]}>Quiz data unavailable or error finding question.</Text>
+                <Button title="Go Back" onPress={() => router.back()} color={theme.primary} />
             </View>
         ); 
     }
@@ -306,14 +334,14 @@ const InQuizGameScreen = ({ quizId }: InQuizGameScreenProps) => {
     // Render the answer confirmation screen if needed
     if (showAnswerConfirmation) {
         return (
-            <SafeAreaView style={styles.safeArea}>
-                <View style={styles.container}>
-                    <View style={styles.header}>
-                        <Text style={styles.headerTitle}>Answer Feedback</Text>
+            <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.background }]}>
+                <View style={[styles.container, { backgroundColor: theme.background }]}>
+                    <View style={[styles.header, { backgroundColor: theme.headerBackground }]}>
+                        <Text style={[styles.headerTitle, { color: theme.text }]}>Answer Feedback</Text>
                     </View>
                     
-                    <View style={styles.feedbackContainer}>
-                        <Text style={styles.questionText}>{lastQuestionText}</Text>
+                    <View style={[styles.feedbackContainer, { backgroundColor: theme.card }]}>
+                        <Text style={[styles.questionText, { color: theme.text }]}>{lastQuestionText}</Text>
                         
                         <View style={styles.feedbackResult}>
                             <Text style={[
@@ -325,7 +353,7 @@ const InQuizGameScreen = ({ quizId }: InQuizGameScreenProps) => {
                         </View>
                         
                         <View style={styles.answerExplanation}>
-                            <Text style={styles.explanationTitle}>Your answer:</Text>
+                            <Text style={[styles.explanationTitle, { color: theme.text }]}>Your answer:</Text>
                             <Text style={[
                                 styles.answerText,
                                 isAnswerCorrect ? styles.correctAnswerText : styles.incorrectAnswerText
@@ -335,7 +363,7 @@ const InQuizGameScreen = ({ quizId }: InQuizGameScreenProps) => {
                             
                             {!isAnswerCorrect && (
                                 <>
-                                    <Text style={styles.explanationTitle}>Correct answer:</Text>
+                                    <Text style={[styles.explanationTitle, { color: theme.text }]}>Correct answer:</Text>
                                     <Text style={styles.correctAnswerText}>
                                         {lastCorrectAnswer !== null ? lastQuestionOptions[lastCorrectAnswer] : "Unknown"}
                                     </Text>
@@ -343,16 +371,16 @@ const InQuizGameScreen = ({ quizId }: InQuizGameScreenProps) => {
                             )}
                         </View>
                         
-                        <View style={styles.scoreContainer}>
-                            <Text style={styles.scoreText}>Current Score: {score}/{currentQuestionIndex + 1}</Text>
+                        <View style={[styles.scoreContainer, { backgroundColor: theme.surface }]}>
+                            <Text style={[styles.scoreText, { color: theme.text }]}>Current Score: {score}/{currentQuestionIndex + 1}</Text>
                         </View>
                         
-                        <View style={styles.countdownContainer}>
-                            <Text style={styles.countdownText}>Next question in: {countdownTimer}</Text>
+                        <View style={[styles.countdownContainer, { backgroundColor: theme.surface }]}>
+                            <Text style={[styles.countdownText, { color: theme.text }]}>Next question in: {countdownTimer}</Text>
                         </View>
                         
                         <TouchableOpacity 
-                            style={styles.continueButton}
+                            style={[styles.continueButton, { backgroundColor: theme.primary }]}
                             onPress={handleContinueToNextQuestion}
                         >
                             <Text style={styles.continueButtonText}>
@@ -366,17 +394,17 @@ const InQuizGameScreen = ({ quizId }: InQuizGameScreenProps) => {
     }
 
     return (
-        <SafeAreaView style={styles.safeArea}>
-            <View style={styles.container}>
-                <View style={styles.header}>
-                    <Text style={styles.headerTitle}>Medias</Text>
-                    <TouchableOpacity onPress={handleQuit} style={styles.quitButton}>
+        <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.background }]}>
+            <View style={[styles.container, { backgroundColor: theme.background }]}>
+                <View style={[styles.header, { backgroundColor: theme.headerBackground }]}>
+                    <Text style={[styles.headerTitle, { color: theme.text }]}>Medias</Text>
+                    <TouchableOpacity onPress={handleQuit} style={[styles.quitButton, { backgroundColor: theme.primary }]}>
                         <Text style={styles.quitButtonText}>Quit</Text>
                     </TouchableOpacity>
                 </View>
                 <View style={styles.statsContainer}>
-                    <Text style={styles.statsText}>Time remaining: {timeLeft}s</Text>
-                    <Text style={styles.statsText}>{currentQuestionIndex + 1}/{totalQuestions} questions</Text>
+                    <Text style={[styles.statsText, { color: theme.secondaryText }]}>Time remaining: {timeLeft}s</Text>
+                    <Text style={[styles.statsText, { color: theme.secondaryText }]}>{currentQuestionIndex + 1}/{totalQuestions} questions</Text>
                 </View>
                 <View style={styles.imagePlaceholder}>
                     {(currentQuestion?.image || currentQuestion?.imageUrl) ? (() => {
@@ -431,14 +459,14 @@ const InQuizGameScreen = ({ quizId }: InQuizGameScreenProps) => {
                             />
                         );
                     })() : (
-                        <View style={[styles.image, {alignItems: 'center', justifyContent: 'center', backgroundColor: '#f0f0f0'}]}>
-                            <Text style={styles.imagePlaceholderText}>No image available</Text>
+                        <View style={[styles.image, {alignItems: 'center', justifyContent: 'center', backgroundColor: theme.surface}]}>
+                            <Text style={[styles.imagePlaceholderText, { color: theme.secondaryText }]}>No image available</Text>
                         </View>
                     )}
                 </View>
 
-                <View style={styles.questionContainer}>
-                    <Text style={styles.questionText}>{currentQuestion.text}</Text>
+                <View style={[styles.questionContainer, { backgroundColor: theme.card }]}>
+                    <Text style={[styles.questionText, { color: theme.text }]}>{currentQuestion.text}</Text>
                 </View>
                 <View style={styles.optionsContainer}>
                     {currentQuestion.options.map((option, index) => (

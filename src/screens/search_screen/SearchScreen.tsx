@@ -41,7 +41,7 @@ const SearchScreen: React.FC = () => {
   const [isSearchFocused, setIsSearchFocused] = useState(false);
   const [searchSuggestions, setSearchSuggestions] = useState<Quiz[]>([]);
   const [showAllRecentSearches, setShowAllRecentSearches] = useState(false);
-
+  
   // Load recent searches on mount
   useEffect(() => {
     loadRecentSearches();
@@ -78,19 +78,19 @@ const SearchScreen: React.FC = () => {
     }
   };
 
-  const fetchQuizzes = async () => {
-    try {
-      const quizzes = await getAllQuizzes();
-      setAllQuizzes(quizzes);
+    const fetchQuizzes = async () => {
+      try {
+        const quizzes = await getAllQuizzes();
+        setAllQuizzes(quizzes);
       // Always ensure we set all quizzes as the default search results
       setSearchResults(quizzes);
-    } catch (error) {
-      console.error('Error fetching quizzes:', error);
+      } catch (error) {
+        console.error('Error fetching quizzes:', error);
     } finally {
       setRefreshing(false);
-    }
-  };
-
+      }
+    };
+    
   useEffect(() => {
     fetchQuizzes();
   }, []);
@@ -173,7 +173,7 @@ const SearchScreen: React.FC = () => {
     
     // Set the search results
     setSearchResults(results);
-    
+
     // Save to recent searches
     saveRecentSearch(quiz.title.trim());
     
@@ -267,7 +267,7 @@ const SearchScreen: React.FC = () => {
           </View>
         )}
       </View>
-    );
+  );
   };
 
   return (
@@ -362,20 +362,20 @@ const SearchScreen: React.FC = () => {
             </View>
           )}
           
-          {isSearching ? (
-            <View style={styles.loadingContainer}>
+        {isSearching ? (
+          <View style={styles.loadingContainer}>
               <ActivityIndicator size="large" color={theme.primary} />
               <Text style={[styles.loadingText, { color: theme.text }]}>Searching...</Text>
-            </View>
-          ) : (
+          </View>
+        ) : (
             <QuizList
               quizzes={searchResults}
               refreshing={refreshing}
               onRefresh={onRefresh}
             />
           )}
-        </View>
-      )}
+          </View>
+        )}
     </SafeAreaView>
   );
 };
