@@ -13,13 +13,17 @@ import {
     SafeAreaView,
     FlatList,
     Modal,
-    Platform
+    Platform,
+    KeyboardAvoidingView,
+    TouchableWithoutFeedback,
+    Keyboard
 } from 'react-native';
 import { createQuiz, uploadQuestionImage } from '../../services/quiz_service'; 
 import { useRouter } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker'; 
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { apiBaseUrl } from '../../services/api';
+import { useTheme } from '@/context/ThemeContext';
 
 // Use the API URL from the api module instead of hardcoding it
 const API_BASE_URL = apiBaseUrl;
@@ -214,6 +218,7 @@ const SafeImage: React.FC<SafeImageProps> = ({ uri, style, fallback = null }) =>
 
 const CreateQuizScreenMVP = () => {
     const router = useRouter();
+    const { theme } = useTheme();
     const [title, setTitle] = useState<string>('');
     const [tags, setTags] = useState<string[]>([]);
     const [tagModalVisible, setTagModalVisible] = useState<boolean>(false);
@@ -398,33 +403,41 @@ const CreateQuizScreenMVP = () => {
         }
     };
 
+    const handleRemoveImage = (id: string) => {
+        setQuestions(prevQuestions => 
+            prevQuestions.map(q => 
+                q.id === id ? { ...q, imageUri: null, imageUrl: null } : q
+            )
+        );
+    };
+
     // --- UI ---
     return (
-        <SafeAreaView style={styles.safeArea}>
-            <ScrollView style={styles.container} keyboardShouldPersistTaps="handled">
+        <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.background }]}>
+            <ScrollView style={[styles.container, { backgroundColor: theme.background }]} keyboardShouldPersistTaps="handled">
                 {/* Form */}
-                <Text style={styles.label}>Quiz Title</Text>
+                <Text style={[styles.label, { color: theme.text }]}>Quiz Title</Text>
                 <TextInput 
-                    style={styles.input} 
+                    style={[styles.input, { color: theme.text, borderColor: theme.border, backgroundColor: theme.card }]} 
                     value={title} 
                     onChangeText={setTitle} 
                     placeholder="Enter quiz title"
-                    placeholderTextColor="#a0a0a0"
+                    placeholderTextColor={theme.secondaryText}
                 />
 
-                <Text style={styles.label}>Tags</Text>
+                <Text style={[styles.label, { color: theme.text }]}>Tags</Text>
                 
                 {/* Selected tags */}
                 {tags.length > 0 && (
                     <View style={styles.selectedTagsContainer}>
-                        <Text style={styles.sectionTitle}>Selected Tags ({tags.length})</Text>
+                        <Text style={[styles.sectionTitle, { color: theme.text }]}>Selected Tags ({tags.length})</Text>
                         <ScrollView 
                             horizontal 
                             showsHorizontalScrollIndicator={false}
                             style={styles.selectedTagsScrollView}
                         >
                             {tags.map(tag => (
-                                <View key={tag} style={styles.selectedTag}>
+                                <View key={tag} style={[styles.selectedTag, { backgroundColor: theme.primary }]}>
                                     <Text style={styles.selectedTagText}>{tag}</Text>
                                     <TouchableOpacity 
                                         style={styles.selectedTagRemove} 
@@ -438,11 +451,14 @@ const CreateQuizScreenMVP = () => {
                     </View>
                 )}
 
-                <TouchableOpacity style={styles.addTagsButton} onPress={() => setTagModalVisible(true)}>
-                    <Text style={styles.addTagsButtonText}>Add Tags</Text>
+                <TouchableOpacity 
+                    style={[styles.addTagsButton, { borderColor: theme.primary }]} 
+                    onPress={() => setTagModalVisible(true)}
+                >
+                    <Text style={[styles.addTagsButtonText, { color: theme.primary }]}>Add Tags</Text>
                 </TouchableOpacity>
 
-            <View style={styles.separator} />
+            <View style={[styles.separator, { backgroundColor: theme.border }]} />
                 
             {questions.map((question, index) => {
                 // Image Preview - more defensive approach
@@ -484,98 +500,125 @@ const CreateQuizScreenMVP = () => {
                 })();
 
                 return (
-                    <View key={question.id} style={styles.questionBox}>
+                    <View key={question.id} style={[styles.questionBox, { backgroundColor: theme.card, borderColor: theme.border }]}>
                         {/* Question Header & Remove Button */}
-                        <View style={styles.questionBoxHeader}>
-                           <Text style={styles.questionHeader}>Question {index + 1}</Text>
+                        <View style={[styles.questionBoxHeader, { borderBottomColor: theme.border }]}>
+                           <Text style={[styles.questionHeader, { color: theme.text }]}>Question {index + 1}</Text>
                            {questions.length > 1 && (
                                <TouchableOpacity onPress={() => removeQuestionField(question.id)} style={styles.removeButton}>
-                                        <Ionicons name="trash-outline" size={22} color="#FF3B30"/>
+                                        <Ionicons name="trash-outline" size={22} color={theme.error}/>
                                </TouchableOpacity>
                             )}
                         </View>
                             <TextInput 
-                                style={[styles.input, styles.questionInput]} 
+                                style={[
+                                    styles.input, 
+                                    styles.questionInput, 
+                                    { 
+                                        color: theme.text, 
+                                        borderColor: theme.border, 
+                                        backgroundColor: theme.background 
+                                    }
+                                ]} 
                                 value={question.question} 
                                 onChangeText={(text) => handleQuestionDataChange(question.id, 'question', text)} 
                                 placeholder={`Question ${index + 1} text`} 
                                 multiline 
-                                placeholderTextColor="#a0a0a0"
+                                placeholderTextColor={theme.secondaryText}
                             />
                         <View style={styles.imageArea}>
                             {(previewUri || isUploading === question.id) && (
                                 <View style={styles.previewImageContainer}>
                                     {isUploading === question.id ? (
-                                        <View style={[styles.previewImage, { justifyContent: 'center', alignItems: 'center' }]}>
-                                            <ActivityIndicator size="small" color="#007AFF" />
+                                        <View style={[styles.previewImage, { backgroundColor: theme.surface, justifyContent: 'center', alignItems: 'center' }]}>
+                                            <ActivityIndicator size="small" color={theme.primary} />
                                         </View>
                                     ) : (
-                                        <SafeImage 
-                                            uri={previewUri} 
-                                            style={styles.previewImage} 
-                                            fallback={
-                                                <View style={[styles.previewImage, { justifyContent: 'center', alignItems: 'center' }]}>
-                                                    <Ionicons name="image-outline" size={24} color="#8E8E93" />
-                                                </View>
-                                            }
-                                        />
+                                        <>
+                                            <SafeImage 
+                                                uri={previewUri} 
+                                                style={styles.previewImage} 
+                                                fallback={
+                                                    <View style={[styles.previewImage, { backgroundColor: theme.surface, justifyContent: 'center', alignItems: 'center' }]}>
+                                                        <Ionicons name="image-outline" size={24} color={theme.secondaryText} />
+                                                    </View>
+                                                }
+                                            />
+                                            <TouchableOpacity 
+                                                style={[styles.removeImageButton, { backgroundColor: theme.error }]} 
+                                                onPress={() => handleRemoveImage(question.id)}
+                                            >
+                                                <Ionicons name="close" size={16} color="#FFFFFF" />
+                                            </TouchableOpacity>
+                                        </>
                                     )}
                                 </View>
                             )}
                             <TouchableOpacity 
-                                style={styles.imageButton} 
+                                style={[styles.imageButton, { backgroundColor: theme.surface }]} 
                                 onPress={() => handleImagePick(question.id)} 
                                 disabled={isUploading !== null}
                             >
-                                <Ionicons name="image-outline" size={20} color="#007AFF" style={styles.imageIcon} />
-                                <Text style={styles.imageButtonText}>{question.imageUrl ? "Change Image" : "Add Image"}</Text>
+                                <Ionicons name="image-outline" size={20} color={theme.primary} style={styles.imageIcon} />
+                                <Text style={[styles.imageButtonText, { color: theme.primary }]}>{question.imageUrl ? "Change Image" : "Add Image"}</Text>
                             </TouchableOpacity>
                         </View>
-                            <Text style={styles.labelSmall}>Answer Options (Tap circle to mark correct)</Text>
-                        {question.options.map((optionText, optionIndex) => (
-                           <View key={optionIndex} style={styles.optionContainer}>
-                                  <View style={styles.optionInputWrapper}>
-                                      <Text style={styles.optionLabel}>{String.fromCharCode(65 + optionIndex)}</Text>
-                                      <TextInput 
-                                          style={styles.optionInput} 
-                                          value={optionText} 
-                                          onChangeText={(text) => handleQuestionDataChange(question.id, 'option', text, optionIndex)} 
-                                          placeholder={`Option ${String.fromCharCode(65 + optionIndex)}`}
-                                          placeholderTextColor="#a0a0a0"
-                                      />
-                                  </View>
-                              <TouchableOpacity 
-                                style={[styles.radio, question.correctAnswerIndex === optionIndex && styles.radioSelected]} 
-                                onPress={() => {
-                                  handleCorrectAnswerChange(question.id, optionIndex);
-                                }} 
-                                  >
-                                    {question.correctAnswerIndex === optionIndex && 
-                                      <View style={styles.radioInner} />
-                                    }
-                                  </TouchableOpacity>
-                            </View>
-                         ))}
-                    </View>
-                );
-            })}
-                
+                            <Text style={[styles.labelSmall, { color: theme.text }]}>Answer Options (Tap circle to mark correct)</Text>
+                            {question.options.map((optionText, optionIndex) => (
+                               <View key={optionIndex} style={styles.optionContainer}>
+                                      <View style={[styles.optionInputWrapper, { borderColor: theme.border, backgroundColor: theme.background }]}>
+                                          <Text style={[styles.optionLabel, { color: theme.secondaryText }]}>{String.fromCharCode(65 + optionIndex)}</Text>
+                                          <TextInput 
+                                              style={[styles.optionInput, { color: theme.text }]} 
+                                              value={optionText} 
+                                              onChangeText={(text) => handleQuestionDataChange(question.id, 'option', text, optionIndex)} 
+                                              placeholder={`Option ${String.fromCharCode(65 + optionIndex)}`}
+                                              placeholderTextColor={theme.secondaryText}
+                                          />
+                                      </View>
+                                  <TouchableOpacity 
+                                    style={[
+                                        styles.radio, 
+                                        question.correctAnswerIndex === optionIndex && styles.radioSelected,
+                                        { borderColor: theme.primary },
+                                        question.correctAnswerIndex === optionIndex && { borderColor: theme.success }
+                                    ]} 
+                                    onPress={() => {
+                                      handleCorrectAnswerChange(question.id, optionIndex);
+                                    }} 
+                                      >
+                                        {question.correctAnswerIndex === optionIndex && 
+                                          <View style={[styles.radioInner, { backgroundColor: theme.success }]} />
+                                        }
+                                      </TouchableOpacity>
+                                </View>
+                             ))}
+                        </View>
+                    );
+                })}
+                    
                 <TouchableOpacity 
-                    style={styles.addQuestionButton} 
+                    style={[
+                        styles.addQuestionButton,
+                        { backgroundColor: theme.surface }
+                    ]} 
                     onPress={addQuestionField} 
                     disabled={isUploading !== null}
                 >
-                    <Ionicons name="add-circle-outline" size={20} color="#007AFF" style={styles.buttonIcon} />
-                    <Text style={styles.addQuestionButtonText}>Add Question</Text>
+                    <Ionicons name="add-circle-outline" size={20} color={theme.primary} style={styles.buttonIcon} />
+                    <Text style={[styles.addQuestionButtonText, { color: theme.primary }]}>Add Question</Text>
                 </TouchableOpacity>
-                
-            <View style={styles.separator} />
+            <View style={[styles.separator, { backgroundColor: theme.border }]} />
                 
                 <TouchableOpacity 
-                    style={[styles.submitButton, (isLoading || isUploading !== null) && styles.disabledButton]} 
+                    style={[
+                        styles.submitButton, 
+                        (isLoading || isUploading !== null) && styles.disabledButton,
+                        { backgroundColor: theme.primary }
+                    ]} 
                     onPress={handleCreateQuiz} 
                     disabled={isLoading || isUploading !== null}
-                >
+                 >
                     {isLoading ? (
                         <ActivityIndicator color="#FFFFFF" />
                     ) : (
@@ -584,68 +627,130 @@ const CreateQuizScreenMVP = () => {
                 </TouchableOpacity>
                 
             <View style={{ height: 50 }} />
-            </ScrollView>
+             </ScrollView>
 
-            {/* Tags Modal */}
-            <Modal visible={tagModalVisible} animationType="slide" onRequestClose={() => setTagModalVisible(false)}>
-                <SafeAreaView style={styles.modalContainer}>
-                    <View style={styles.modalHeader}>
-                        <Text style={styles.modalTitle}>Select Tags</Text>
-                        <TouchableOpacity onPress={() => setTagModalVisible(false)}>
-                            <Ionicons name="close" size={24} color="#007AFF" />
-                        </TouchableOpacity>
-                    </View>
-                    <View style={styles.modalSearchContainer}>
-                        <Ionicons name="search" size={20} color="#8E8E93" style={styles.modalSearchIcon} />
-                        <TextInput
-                            style={styles.modalSearchInput}
-                            value={tagSearch}
-                            onChangeText={setTagSearch}
-                            placeholder="Search or add tag..."
-                            placeholderTextColor="#a0a0a0"
-                            autoFocus
-                            returnKeyType="done"
-                            onSubmitEditing={() => handleAddTag(tagSearch)}
-                        />
-                    </View>
-                    {/* Add custom tag suggestion chip if not in premade or selected */}
-                    {tagSearch.trim() && !POPULAR_TAGS.includes(tagSearch.trim()) && !tags.includes(tagSearch.trim()) && (
-                        <View style={styles.modalCustomTagSuggestionContainer}>
-                            <TouchableOpacity
-                                style={styles.modalCustomTagSuggestion}
-                                onPress={() => handleAddTag(tagSearch)}
-                            >
-                                <Text style={styles.modalCustomTagSuggestionText}>{tagSearch.trim()}</Text>
-                            </TouchableOpacity>
-                        </View>
-                    )}
-                    {/* Selected Tags Preview */}
-                    {tags.length > 0 && (
-                        <View style={styles.modalSelectedTagsContainer}>
-                            {tags.map(tag => (
-                                <View key={tag} style={styles.modalSelectedTag}>
-                                    <Text style={styles.modalSelectedTagText}>{tag}</Text>
-                                    <TouchableOpacity onPress={() => handleRemoveTag(tag)}>
-                                        <Ionicons name="close-circle" size={18} color="#007AFF" />
-                                    </TouchableOpacity>
-                                </View>
-                            ))}
-                        </View>
-                    )}
-                    <ScrollView contentContainerStyle={styles.modalTagsList}>
-                        {filteredTags.map(tag => (
-                            <TouchableOpacity
-                                key={tag}
-                                style={styles.modalTagButton}
-                                onPress={() => handleAddTag(tag)}
-                            >
-                                <Text style={styles.modalTagText}>{tag}</Text>
-                            </TouchableOpacity>
-                        ))}
-        </ScrollView>
-                </SafeAreaView>
-            </Modal>
-        </SafeAreaView>
+             {/* Tags Modal */}
+             <Modal 
+                 visible={tagModalVisible} 
+                 animationType="slide" 
+                 transparent={false}
+                 onRequestClose={() => setTagModalVisible(false)}
+             >
+                 <SafeAreaView style={[styles.modalContainer, { backgroundColor: theme.background }]}>
+                     <View style={[styles.modalHeader, { borderBottomColor: theme.border }]}>
+                         <TouchableOpacity onPress={() => setTagModalVisible(false)} style={styles.modalBackButton}>
+                             <Ionicons name="arrow-back" size={24} color={theme.text} />
+                         </TouchableOpacity>
+                         <Text style={[styles.modalTitle, { color: theme.text }]}>Select Tags</Text>
+                         <View style={styles.modalBackButton} />
+                     </View>
+                     
+                     <KeyboardAvoidingView 
+                         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                         style={styles.modalContent}
+                         keyboardVerticalOffset={Platform.OS === 'ios' ? 10 : 0}
+                     >
+                         <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+                             <View style={styles.modalInnerContent}>
+                                 <View style={[styles.modalSearchContainer, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+                                     <Ionicons name="search" size={20} color={theme.secondaryText} style={styles.modalSearchIcon} />
+                                     <TextInput
+                                         style={[styles.modalSearchInput, { color: theme.text }]}
+                                         value={tagSearch}
+                                         onChangeText={setTagSearch}
+                                         placeholder="Search or add tag..."
+                                         placeholderTextColor={theme.secondaryText}
+                                         returnKeyType="done"
+                                         onSubmitEditing={() => {
+                                             if (tagSearch.trim()) {
+                                                 handleAddTag(tagSearch);
+                                             }
+                                             Keyboard.dismiss();
+                                         }}
+                                     />
+                                     {tagSearch.length > 0 && (
+                                         <TouchableOpacity onPress={() => setTagSearch('')}>
+                                             <Ionicons name="close-circle" size={20} color={theme.secondaryText} />
+                                         </TouchableOpacity>
+                                     )}
+                                 </View>
+                                 
+                                 {/* Add custom tag suggestion chip if not in premade or selected */}
+                                 {tagSearch.trim() && !POPULAR_TAGS.includes(tagSearch.trim()) && !tags.includes(tagSearch.trim()) && (
+                                     <View style={styles.modalCustomTagSuggestionContainer}>
+                                         <TouchableOpacity
+                                             style={[styles.modalCustomTagSuggestion, { backgroundColor: theme.primary }]}
+                                             onPress={() => {
+                                                 handleAddTag(tagSearch);
+                                                 Keyboard.dismiss();
+                                             }}
+                                         >
+                                             <Text style={styles.modalCustomTagSuggestionText}>Add "{tagSearch.trim()}"</Text>
+                                         </TouchableOpacity>
+                                     </View>
+                                 )}
+                                 
+                                 {/* Selected Tags section */}
+                                 {tags.length > 0 && (
+                                     <View style={styles.modalSelectedTagsSection}>
+                                         <Text style={[styles.modalSectionTitle, { color: theme.text }]}>Selected Tags</Text>
+                                         <View style={styles.modalSelectedTagsContainer}>
+                                             {tags.map(tag => (
+                                                 <View key={tag} style={[styles.modalSelectedTag, { backgroundColor: theme.surface }]}>
+                                                     <Text style={[styles.modalSelectedTagText, { color: theme.text }]}>{tag}</Text>
+                                                     <TouchableOpacity onPress={() => handleRemoveTag(tag)}>
+                                                         <Ionicons name="close-circle" size={18} color={theme.primary} />
+                                                     </TouchableOpacity>
+                                                 </View>
+                                             ))}
+                                         </View>
+                                     </View>
+                                 )}
+                                 
+                                 {/* Suggested Tags section */}
+                                 <View style={styles.modalSuggestedTagsSection}>
+                                     {(!tagSearch.trim() || filteredTags.length > 0) && (
+                                         <Text style={[styles.modalSectionTitle, { color: theme.text }]}>Suggested Tags</Text>
+                                     )}
+                                     <ScrollView 
+                                         contentContainerStyle={styles.modalTagsList}
+                                         keyboardShouldPersistTaps="handled"
+                                     >
+                                         {filteredTags.length > 0 ? (
+                                             filteredTags.map(tag => (
+                                                 <TouchableOpacity
+                                                     key={tag}
+                                                     style={[styles.modalTagButton, { borderColor: theme.primary, backgroundColor: theme.surface }]}
+                                                     onPress={() => {
+                                                         handleAddTag(tag);
+                                                         Keyboard.dismiss();
+                                                     }}
+                                                 >
+                                                     <Text style={[styles.modalTagText, { color: theme.primary }]}>{tag}</Text>
+                                                 </TouchableOpacity>
+                                             ))
+                                         ) : (
+                                             !tagSearch.trim() && (
+                                                 <Text style={[styles.noTagsMessage, { color: theme.secondaryText }]}>
+                                                     No more tags available
+                                                 </Text>
+                                             )
+                                         )}
+                                     </ScrollView>
+                                 </View>
+                             </View>
+                         </TouchableWithoutFeedback>
+                     </KeyboardAvoidingView>
+                     
+                     <TouchableOpacity 
+                         style={[styles.doneButton, { backgroundColor: theme.primary }]}
+                         onPress={() => setTagModalVisible(false)}
+                     >
+                         <Text style={styles.doneButtonText}>Done</Text>
+                     </TouchableOpacity>
+                 </SafeAreaView>
+             </Modal>
+          </SafeAreaView>
     );
 };
 
@@ -934,24 +1039,27 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         padding: 16,
         borderBottomWidth: 1,
-        borderBottomColor: '#D1D1D6',
+    },
+    modalBackButton: {
+        padding: 8,
     },
     modalTitle: {
         fontSize: 20,
         fontWeight: '600',
-        color: '#1C1C1E',
+        flex: 1,
+        textAlign: 'center',
+    },
+    modalContent: {
+        flex: 1,
     },
     modalSearchContainer: {
         flexDirection: 'row',
         alignItems: 'center',
-        marginHorizontal: 16,
-        marginVertical: 12,
+        margin: 16,
         paddingHorizontal: 12,
         height: 44,
-        backgroundColor: '#FFFFFF',
         borderRadius: 10,
         borderWidth: 1,
-        borderColor: '#D1D1D6',
     },
     modalSearchIcon: {
         marginRight: 8,
@@ -960,14 +1068,12 @@ const styles = StyleSheet.create({
         flex: 1,
         height: '100%',
         fontSize: 17,
-        color: '#1C1C1E',
     },
     modalCustomTagSuggestionContainer: {
         marginHorizontal: 16,
         marginBottom: 12,
     },
     modalCustomTagSuggestion: {
-        backgroundColor: '#007AFF',
         paddingVertical: 8,
         paddingHorizontal: 12,
         borderRadius: 16,
@@ -984,28 +1090,23 @@ const styles = StyleSheet.create({
         padding: 16,
     },
     modalTagButton: {
-        backgroundColor: '#FFFFFF',
         paddingVertical: 8,
         paddingHorizontal: 12,
         borderRadius: 16,
         borderWidth: 1,
-        borderColor: '#007AFF',
         margin: 4,
     },
     modalTagText: {
-        color: '#007AFF',
         fontSize: 15,
     },
     modalSelectedTagsContainer: {
         flexDirection: 'row',
         flexWrap: 'wrap',
         paddingHorizontal: 16,
-        marginBottom: 16,
     },
     modalSelectedTag: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: '#E5E5EA',
         borderRadius: 16,
         paddingVertical: 6,
         paddingHorizontal: 12,
@@ -1014,8 +1115,69 @@ const styles = StyleSheet.create({
     },
     modalSelectedTagText: {
         fontSize: 15,
-        color: '#1C1C1E',
         marginRight: 4,
+    },
+    modalSelectedTagsSection: {
+        marginHorizontal: 16,
+        marginVertical: 8,
+    },
+    modalSuggestedTagsSection: {
+        flex: 1,
+        marginVertical: 8,
+    },
+    noTagsMessage: {
+        fontSize: 16,
+        fontWeight: '400',
+        textAlign: 'center',
+        padding: 20,
+    },
+    doneButton: {
+        padding: 16,
+        borderRadius: 10,
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginHorizontal: 16,
+        marginVertical: 16,
+    },
+    doneButtonText: {
+        fontSize: 17,
+        fontWeight: '600',
+        color: '#FFFFFF'
+    },
+    tagSearchInput: {
+        padding: 12,
+        borderWidth: 1,
+        borderColor: '#D1D1D6',
+        borderRadius: 10,
+        marginBottom: 16,
+    },
+    popularTagsTitle: {
+        fontSize: 15,
+        fontWeight: '600',
+        color: '#1C1C1E',
+        marginBottom: 8
+    },
+    modalOverlay: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    removeImageButton: {
+        padding: 4,
+        borderRadius: 4,
+        backgroundColor: '#E5E5EA',
+        position: 'absolute',
+        top: 4,
+        right: 4,
+    },
+    modalSectionTitle: {
+        fontSize: 18,
+        fontWeight: '600',
+        marginBottom: 12,
+        paddingHorizontal: 16,
+    },
+    modalInnerContent: {
+        flex: 1,
     },
 });
 
