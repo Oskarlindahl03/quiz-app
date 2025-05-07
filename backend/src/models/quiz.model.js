@@ -29,6 +29,24 @@ const questionSchema = new mongoose.Schema({
   }
 }, { timestamps: true });
 
+// Define comment schema
+const commentSchema = new mongoose.Schema({
+  text: {
+    type: String,
+    required: [true, 'Comment text is required'],
+    trim: true,
+  },
+  username: {
+    type: String,
+    required: [true, 'Username is required'],
+    trim: true,
+  },
+  createdAt: {
+    type: Date,
+    default: Date.now
+  }
+});
+
 const quizSchema = new mongoose.Schema({
   title: {
     type: String,
@@ -59,6 +77,13 @@ const quizSchema = new mongoose.Schema({
     type: Boolean,
     default: true,
   },
+  // Add comments array to quiz schema
+  comments: [commentSchema],
+  // Add likes field
+  likes: {
+    type: Number,
+    default: 0,
+  }
 }, { timestamps: true });
 
 // Add text indexes for search

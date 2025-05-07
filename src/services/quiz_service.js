@@ -60,6 +60,70 @@ export const getQuizById = async (quizId) => {
 };
 
 /**
+ * Like or unlike a quiz
+ * @param {string} quizId - Quiz ID
+ * @param {boolean} liked - Whether the quiz is being liked (true) or unliked (false)
+ * @returns {Promise<Object>} Updated like count
+ */
+export const likeQuiz = async (quizId, liked) => {
+  try {
+    const response = await apiClient.post(`/quizzes/${quizId}/like`, { liked });
+    console.log('Quiz like status updated successfully');
+    return response.data;
+  } catch (error) {
+    console.error("Error updating quiz like status:", error.response?.data || error.message);
+    throw error;
+  }
+};
+
+/**
+ * Add a comment to a quiz
+ * @param {string} quizId - Quiz ID
+ * @param {string} text - Comment text
+ * @param {string} username - Comment author's username
+ * @returns {Promise<Object>} Comment data
+ */
+export const addComment = async (quizId, text, username) => {
+  try {
+    const response = await apiClient.post(`/quizzes/${quizId}/comments`, { text, username });
+    console.log('Comment added successfully');
+    return response.data;
+  } catch (error) {
+    console.error("Error adding comment:", error.response?.data || error.message);
+    throw error;
+  }
+};
+
+/**
+ * Delete a comment from a quiz
+ * @param {string} quizId - Quiz ID
+ * @param {string} commentId - Comment ID to delete
+ * @returns {Promise<Object>} Success message
+ */
+export const deleteComment = async (quizId, commentId) => {
+  try {
+    // Log the exact parameters for debugging
+    console.log(`Executing deleteComment with quizId=${quizId}, commentId=${commentId}`);
+    
+    // Make sure URL structure matches other functions (getAllQuizzes, getQuizById, etc.)
+    // All other successful functions use just /quizzes/ without the /api prefix
+    const url = `/quizzes/${quizId}/comments/${commentId}`;
+    console.log(`Making DELETE request to: ${url}`);
+    
+    const response = await apiClient.delete(url);
+    console.log('Comment deleted successfully:', response.data);
+    return response.data;
+  } catch (error) {
+    console.error("Error deleting comment:", error);
+    if (error.response) {
+      console.error("Response status:", error.response.status);
+      console.error("Response data:", error.response.data);
+    }
+    throw error;
+  }
+};
+
+/**
  * Delete a quiz by ID
  * @param {string} quizId - Quiz ID to delete
  * @returns {Promise<Object>} Success message
